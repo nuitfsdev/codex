@@ -2,7 +2,7 @@
 
 Project: 3D Scene Understanding with 2D Vision-Language Models via Abstract 3D Representations and Viewpoint Alignment
 
-Last updated: 2026-08-31
+Last updated: 2026-09-01
 
 ## Scope constraints
 - Fixed ScanNet/ScanQA object annotations or 3D boxes as scene input.
@@ -44,7 +44,23 @@ Primary risk: 3DZip proves token compression, not question-conditioned object se
 Scores: Novelty 3.5; Expected Accuracy Gain 3.0; Feasibility 3.5; Compute Cost 4.0; Fit 4.0; Evidence Strength 4.0.
 Object-selection expectations: Object Reduction Ratio budget-controlled; Question Entity Coverage determined by hard seed retention; Supporting-Context Retention potentially better than KNN; context-loss risk medium.
 
-### 3. Question-Aligned View Selection after Subscene Selection
+### 3. ViewMind3D-Guided Modular QA Baseline / Transfer
+Source: ViewMind3D: Modular View-Aware Inference for Training-Free 3D-QA (arXiv 2607.28442, 2026-07-30; preprint; no verified official code found as of 2026-09-01).
+
+Evidence: fully training-free; question-driven multi-view selection; guided visual grounding with language-conditioned object cues; BEV viewpoint indicator; role-based structured reasoning; evaluated directly on ScanQA/SQA3D. Reported 73.4 CIDEr on ScanQA and 50.8% overall accuracy on SQA3D. Strongest reported setting uses OpenAI o3, so it does not satisfy the <=7B local-backbone constraint directly.
+
+Candidate hypothesis: replace ViewMind3D's generic multi-view evidence stage with PoseRecover/PoseAlign-T + compact Abstract-3D subscene evidence. Use ViewMind3D mainly as a near-task baseline for question-driven view selection, grounding, and structured reasoning.
+
+Stage changed: view/evidence selection and final structured reasoning.
+Object-selection rule: not a standalone object selector; use it only after OLT-QA/subscene selection or as a baseline that selects views from the full scene.
+Supporting-context rule: preserve context through selected views; compare against explicit object-level support expansion.
+Expected benefit: validates whether abstract pose-aligned evidence can outperform/reduce the cost of raw multi-view observations.
+Difficulty: medium. Compute: potentially high in the published strongest setting due to o3/API inference; local <=7B transfer must be separately benchmarked.
+Ablation: full-scene multi-view vs selected-subscene abstract views; with/without BEV indicator; with/without structured answer roles.
+Risk: overlap is high for generic question-conditioned view selection; this must not be claimed as novelty.
+Scores: Novelty 2.0 standalone / 3.0 as transfer; Expected Accuracy Gain 4.0; Feasibility 3.0; Compute Cost 2.5; Fit 5.0; Evidence Strength 4.5.
+
+### 4. Question-Aligned View Selection after Subscene Selection
 Source inspiration: CoV, Findings of ACL 2026; public code; training-free; evaluated on ScanQA/SQA3D.
 
 Hypothesis: Once a compact object subscene is available, question-aligned view selection/open-view refinement can improve evidence visibility without rendering many redundant views.
@@ -54,7 +70,12 @@ Transfer rule: run selection on the retained subscene, not full scene; use PoseA
 Scores: Novelty 2.5 as a standalone contribution; Expected Accuracy Gain 4.0; Feasibility 3.5; Compute Cost 3.0; Fit 4.5; Evidence Strength 5.0.
 Risk: view-search cost and overlap with existing CoV; should be secondary module/ablation, not main novelty.
 
-## Current top candidate
-OLT-QA (AgentGrounder-inspired online retrieval, but using GT boxes and adding QA-specific supporting-context expansion + post-PoseAlign relation refinement).
+## Evidence note: View-on-Graph (VoG), AAAI 2026
+VoG is a peer-reviewed AAAI 2026 zero-shot 3D visual grounding method that externalizes spatial information into a multi-modal, multi-layer scene graph and lets a VLM selectively retrieve/traverse only necessary cues instead of processing the whole cluttered representation. This strengthens the evidence that selective structured retrieval is useful, but it also weakens novelty claims based only on 'scene graph + VLM + selective access'. No verified official GitHub repository was found in today's search.
 
-Reason: it is the closest published/open implementation to the exact operational need: retrieve only relevant object candidates from an object table, use deterministic geometry, and render visual evidence on demand. The thesis-specific gap is not the OLT itself; it is adapting this grounding pipeline to QA, preserving unnamed supporting context, and integrating viewpoint-dependent refinement with PoseAlign-T while keeping the backbone small.
+Transfer implication: if a scene-graph variant is tested, use it as an ablation/baseline against OLT-QA rather than the thesis core. The thesis-specific gap should remain QA-specific supporting-context preservation + abstract-rendering evidence budget + PoseAlign-dependent relation refinement.
+
+## Current top candidate
+OLT-QA remains #1.
+
+Reason: ViewMind3D and VoG make the novelty boundary clearer rather than replacing the top candidate. Generic question-conditioned view selection, language-guided grounding, structured reasoning, and selective graph traversal are now well-covered. The still-plausible gap is a lightweight QA-specific selector over fixed GT boxes that explicitly separates seed/referred objects from unnamed supporting/context objects, then renders only the retained pose-aligned abstract subscene and optimizes the QA-preservation vs object-retention trade-off.
