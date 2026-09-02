@@ -2,7 +2,7 @@
 
 Project: 3D Scene Understanding with 2D Vision-Language Models via Abstract 3D Representations and Viewpoint Alignment
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 ## Scope constraints
 - Fixed ScanNet/ScanQA object annotations or 3D boxes as scene input.
@@ -70,6 +70,29 @@ Transfer rule: run selection on the retained subscene, not full scene; use PoseA
 Scores: Novelty 2.5 as a standalone contribution; Expected Accuracy Gain 4.0; Feasibility 3.5; Compute Cost 3.0; Fit 4.5; Evidence Strength 5.0.
 Risk: view-search cost and overlap with existing CoV; should be secondary module/ablation, not main novelty.
 
+### 5. TDVR-inspired Structured Query + Distractor-aware Pose Refinement
+Source: TDVR: Joint Text Disambiguation and Viewpoint Reasoning for Zero-Shot 3D Visual Grounding (arXiv 2608.03763, 2026-08-04; preprint; no verified official code found as of 2026-09-02).
+
+Evidence: TDVR is training-free. It builds a semantic 3D scene graph, enriches/disambiguates the query with appearance and spatial descriptions, infers an optimal viewpoint, explicitly scores confusion among similar instances, and combines viewpoint/category/appearance evidence. It reports strong zero-shot gains on ScanRefer and 70.0% overall / 79.03% viewpoint-dependent accuracy on Sr3D. It is grounding, not QA, and its scene-graph construction should not be copied as the thesis core.
+
+Research Hypothesis: For ScanQA/SQA3D, a lightweight structured query representation can improve seed-instance resolution before supporting-context expansion, while a distractor-aware score after PoseAlign-T can prevent same-class objects from polluting a compact abstract subscene.
+
+Stage changed: question parsing + seed-object resolution + post-PoseAlign distractor pruning.
+Object-selection rule: parse target/anchor/attribute/relation cues; retain all plausible same-category seed instances initially; after PoseAlign-T, rank or remove same-class distractors using frame-aligned geometry plus optional object-crop semantic similarity.
+Supporting-context rule: never prune non-seed neighbors solely because they have low category similarity; support expansion remains relation-conditioned and is evaluated separately from seed disambiguation.
+Expected benefit: higher Question Entity Coverage under instance ambiguity and lower object count after pose-aware disambiguation, without exact noun-only selection.
+Implementation difficulty: medium.
+Data/metrics: ScanQA/SQA3D QA metrics; object retention; seed-entity coverage where measurable; same-class distractor count before/after; downstream QA preservation.
+Compute estimate: no task-specific training; geometry is negligible; CLIP/SigLIP crop scoring is lightweight. A <=7B local parser/VLM should fit roughly 12-20 GB VRAM depending on quantization/context, but this is an implementation estimate, not a paper-reported requirement.
+Ablations: raw noun seeds vs structured query; keep-all same-class vs distractor-aware refinement; refinement before vs after PoseAlign-T; geometry-only vs geometry+appearance.
+Risks: TDVR already covers structured query disambiguation + viewpoint-aware distractor discrimination, so copying this stack has low novelty. The thesis-specific value would need to come from QA supporting-context retention and abstract-rendering budget, not the disambiguation mechanism itself.
+Publication potential: moderate only as a supporting module; weak as standalone novelty.
+Scores: Novelty 2.5; Expected Accuracy Gain 3.5; Feasibility 4.0; Compute Cost 4.0; Fit 4.5; Evidence Strength 3.5.
+Object-selection expectations: Object Reduction Ratio medium; Question Entity Coverage potentially improved for ambiguous same-class scenes; Supporting-Context Retention neutral unless combined with OLT-QA support expansion; context-loss risk medium if distractor pruning is aggressive.
+
+## Evidence note: GuideGround (arXiv 2608.00518)
+GuideGround preserves per-view grounding hypotheses and explicitly verifies them with a VLM instead of indiscriminately aggregating multi-view features. It is not training-free end-to-end in the same sense as the thesis target because it complements task-specific grounding models, and it is evaluated on ReferIt3D rather than ScanQA/SQA3D. The transferable lesson is narrow: after compact subscene selection, keep per-view hypotheses separate and verify consistency before multi-view aggregation. Treat this as an ablation/verification module, not novelty.
+
 ## Evidence note: View-on-Graph (VoG), AAAI 2026
 VoG is a peer-reviewed AAAI 2026 zero-shot 3D visual grounding method that externalizes spatial information into a multi-modal, multi-layer scene graph and lets a VLM selectively retrieve/traverse only necessary cues instead of processing the whole cluttered representation. This strengthens the evidence that selective structured retrieval is useful, but it also weakens novelty claims based only on 'scene graph + VLM + selective access'. No verified official GitHub repository was found in today's search.
 
@@ -78,4 +101,4 @@ Transfer implication: if a scene-graph variant is tested, use it as an ablation/
 ## Current top candidate
 OLT-QA remains #1.
 
-Reason: ViewMind3D and VoG make the novelty boundary clearer rather than replacing the top candidate. Generic question-conditioned view selection, language-guided grounding, structured reasoning, and selective graph traversal are now well-covered. The still-plausible gap is a lightweight QA-specific selector over fixed GT boxes that explicitly separates seed/referred objects from unnamed supporting/context objects, then renders only the retained pose-aligned abstract subscene and optimizes the QA-preservation vs object-retention trade-off.
+Reason: TDVR strengthens the case for structured seed disambiguation and pose-aware distractor filtering, but it also removes those mechanisms from the novelty space. OLT-QA remains ahead because its unresolved question is QA-specific: how to preserve unnamed supporting/context objects while aggressively reducing the rendered abstract subscene. Generic question-conditioned view selection, language-guided grounding, structured reasoning, and selective graph traversal are already well-covered.
