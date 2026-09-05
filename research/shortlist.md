@@ -2,7 +2,7 @@
 
 Project: 3D Scene Understanding with 2D Vision-Language Models via Abstract 3D Representations and Viewpoint Alignment
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 ## Scope constraints
 - Fixed ScanNet/ScanQA object annotations or 3D boxes as scene input.
@@ -88,6 +88,28 @@ Ablations: selected subscene only; + view selection; + token pruning; + both; pr
 Risk: does not solve relevant-object selection; cannot be thesis novelty by itself.
 Scores: Novelty 2.0 standalone / 2.5 integration; Expected Accuracy Gain 3.0; Feasibility 4.0; Compute Cost 4.5; Fit 4.0; Evidence Strength 4.5.
 
+### 7. RCSX: Relation-Conditioned Supporting-Object Expansion
+Source inspiration: Relationship-Aware Hierarchical 3D Scene Graph / ReasoningGraph (IEEE ICRA 2026; project page with code/data).
+
+Hypothesis: after explicit seed objects are grounded, question-conditioned traversal over a lightweight relation graph derived from GT boxes can retain unnamed supporting evidence better than KNN/radius expansion at the same object budget.
+
+Transfer rule:
+1. Reuse OLT-QA seed retrieval and hard-retain plausible seed instances.
+2. Construct cheap pairwise GT-box relations: proximity, vertical relation, overlap/containment, co-location, and approximate support/contact where geometry permits.
+3. Parse relation intent from the question and expand only compatible 1-hop supporting objects; permit a second hop only when the first relation is high confidence.
+4. Score supports using relation compatibility + geometric confidence + optional frozen semantic/visual similarity.
+5. After PoseAlign-T, recompute left/right/front/behind and prune directional inconsistencies.
+6. Render the budgeted seed+support subset only.
+
+Supporting-context rule: unnamed objects can enter through relation-compatible expansion even when semantic similarity to the question is low. Same-class distractors remain until instance disambiguation is complete.
+
+Evidence/transfer caveat: ReasoningGraph's full Hydra/ROS mapping and detector stack is outside scope and can be discarded because ScanNet GT boxes are fixed input. Scene-graph task retrieval itself is not novel; the thesis-specific test is QA evidence retention under an Abstract-3D object budget.
+
+Scores: Novelty 3.0; Expected Accuracy Gain 3.5; Feasibility 4.5; Compute Cost 4.5; Fit 5.0; Evidence Strength 4.5.
+Object-selection targets to test: Object Reduction Ratio 50-85%; Question Entity Coverage >=95%; Supporting-Context Retention expected higher than KNN at matched object budget but unverified; context-loss risk medium.
+Primary ablation: Full scene vs Seed-only vs Seed+KNN vs Seed+radius vs Seed+RCSX, all with matched object budgets, followed by +PoseAlign-T directional refinement.
+Publication potential: moderate only if matched-budget experiments show consistent QA preservation/gains and failure analysis isolates unnamed-support improvements; weak if the method reduces to generic scene-graph retrieval.
+
 ## Evidence notes
 
 ### GuideGround (arXiv 2608.00518)
@@ -105,7 +127,10 @@ Training-free global candidate filtering + local precision grounding. Strong evi
 ### SmartMage, arXiv 2608.05137
 Query-adaptive modality routing for 3D scene understanding. Relevant evidence that query-dependent evidence selection matters, but it is a trained unified MLLM rather than a training-free object/subscene selector; not a direct candidate.
 
-## Current top candidate
-**OLT-QA remains #1.**
+### CoordRefer (arXiv 2608.05569)
+Uses Qwen3-VL-2B and explicitly decouples coordinate-frame selection from coordinate-conditioned 3D box grounding, but requires coordinate-aware SFT plus GRPO. Keep as evidence for ordering reference-frame selection before coordinate-dependent decisions; not a main candidate under the training-free constraint.
 
-Reason: the new geometry-aware pruning evidence improves efficiency after multi-view rendering but does not solve the unresolved QA-specific problem: identify explicit seed/referred objects while preserving unnamed supporting/context objects, then reduce the Abstract-3D subscene aggressively without sacrificing answerability. The core evaluation should remain QA preservation vs Object Reduction Ratio, with explicit Question Entity Coverage and Supporting-Context Retention analysis.
+## Current top candidate
+**OLT-QA remains #1, with RCSX as its strongest supporting-context variant.**
+
+Reason: the unresolved QA-specific problem remains identifying explicit seed/referred objects while preserving unnamed supporting/context objects, then reducing the Abstract-3D subscene aggressively without sacrificing answerability. ReasoningGraph strengthens the evidence that relation-aware task retrieval can outperform purely semantic/noun-based access conceptually, but its heavy mapping stack is unnecessary with fixed GT boxes. The decisive next experiment should therefore compare KNN/radius support expansion against RCSX at matched object budgets, followed by PoseAlign-T directional refinement and downstream QA preservation.
