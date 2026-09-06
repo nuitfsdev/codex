@@ -2,7 +2,7 @@
 
 Project: 3D Scene Understanding with 2D Vision-Language Models via Abstract 3D Representations and Viewpoint Alignment
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 ## Scope constraints
 - Fixed ScanNet/ScanQA object annotations or 3D boxes as scene input.
@@ -11,126 +11,93 @@ Last updated: 2026-09-05
 - Main pipeline: PoseRecover -> PoseAlign-T -> question-conditioned object/view selection -> 3D Abstract Renderer -> 2D VLM -> optional spatial verification / structured reasoning.
 - Main object-selection method must not render the full scene.
 - Seed/referred objects must be distinguished from unnamed supporting/context objects.
+- Do not use ScanQA relevance/object IDs as selector supervision or as a presumed complete supporting-object GT set.
 
 ## Current weekly shortlist
 
-### 1. OLT-QA: Question-conditioned Object Lookup + Geometry + Supporting-Context Expansion
-Source inspiration: AgentGrounder (arXiv 2605.25901; ICRA 2026 MM-Spatial & SRRA Workshops; public code).
+### 1. SAFER-QA: Support-Aware Evidence Expansion for Selective Abstract 3D Rendering
+Primary new evidence: **GraFT** (arXiv:2609.03892v1, submitted 2026-09-03; preprint; no verified official code as of 2026-09-06).
 
-Hypothesis: With GT ScanNet instances replacing AgentGrounder's segmentation-built OLT, a lightweight query parser can retrieve seed/anchor objects, deterministic 3D geometry can resolve frame-safe relations, and a QA-specific support-expansion rule can preserve unnamed evidence before abstract rendering.
+GraFT materially changes the novelty boundary. It is training-free, supports ground-truth ScanNet scene graphs, uses Qwen2.5-VL-7B/3B, and already renders only query-relevant/referenced objects. Its `RelevantClasses(q)` uses regex+synonyms or a VLM selector over scene classes. Therefore generic question->relevant-class extraction and referenced-object-only selective rendering are no longer plausible thesis novelties.
 
-Transfer rule:
-1. Build OLT from GT boxes: id, class, center, size, optional RGB/color summary.
-2. Parse question into seed entities + relation + attribute cues.
-3. Retrieve all plausible seed instances; avoid exact-noun-only matching.
-4. Apply frame-safe geometry filters/ranking.
-5. Expand supporting context using relation-conditioned neighbors, same-class distractors where needed, and short relation chains.
-6. After PoseAlign-T, refine viewpoint-dependent left/right/front/behind relations.
-7. Render only retained objects.
+**Research Hypothesis:** GraFT-style referenced-object selection is incomplete for open-ended 3D QA because unnamed supporting/context objects can be required to answer. Starting from explicit seed objects, relation-conditioned support expansion can preserve a minimal useful evidence set, while PoseAlign-T can refine viewpoint-dependent relations before Abstract-3D rendering.
 
-Primary risk: AgentGrounder is grounding, not QA; its retrieval logic does not establish which unnamed supporting objects ScanQA/SQA3D require.
+**Transfer rule:**
+1. Build an object table from fixed GT boxes: id, class, center, extent, optional color/RGB summary.
+2. Parse explicit seed entities, attributes and relation intent.
+3. Resolve all plausible seed instances via class/synonym/frozen semantic similarity; hard-retain them and delay same-class disambiguation when ambiguous.
+4. Expand unnamed supports through relation-compatible 1-hop graph edges; allow a second hop only for high-confidence chained relations.
+5. Under a fixed object budget, use diversity-aware tie-breaking to avoid redundant KNN-style context.
+6. After PoseAlign-T, recompute viewpoint-dependent left/right/front/behind relations and prune incompatible supports.
+7. Render only seed+support objects.
 
-Scores (1-5): Novelty 3.0; Expected Accuracy Gain 3.5; Feasibility 4.5; Compute Cost 4.0 (higher=cheaper); Fit 5.0; Evidence Strength 3.5.
-Object-selection targets to test, not claims: Object Reduction Ratio 50-85%; Question Entity Coverage >=95% for explicit anchors; Supporting-Context Retention unknown; context-loss risk medium-high.
+**Supporting-context rule:** support objects need not occur as nouns in the question. Candidate supports can enter via near, above/below, support/contact, containment, overlap, or functional-cluster relations. Exact noun match must never be the sole inclusion rule.
 
-### 2. Object-Diversity Context Preservation inspired by 3DZip
+**Evaluation:** downstream ScanQA/SQA3D QA; Object Reduction Ratio; Question Entity Coverage for explicit parsed entities; object-budget vs QA curve; Context Benefit Rate (Seed+Support correct while Seed-only fails); Support Ablation Sensitivity (QA drop when selected supports are removed). `Supporting-Context Retention` must be reported as a proxy unless an explicit support-object GT set is introduced.
+
+**Core ablation:** Full Scene vs GraFT-style Seed-only vs Seed+KNN vs Seed+radius vs Seed+relation-aware support vs +diversity budget vs +PoseAlign-T, with matched object budgets.
+
+**Scores (1-5):** Novelty 3.5; Expected Accuracy Gain 3.5; Feasibility 4.5; Compute Cost 4.5 (higher=cheaper); Fit 5.0; Evidence Strength 4.5.
+**Object-selection targets to test, not claims:** Object Reduction Ratio 50-85%; Question Entity Coverage >=95% for explicit entities; Supporting-Context Retention unknown/proxy-only; context-loss risk medium.
+**Publication potential:** moderate-to-good only if matched-budget experiments show consistent QA preservation/gains attributable specifically to unnamed-support retention.
+
+### 2. OLT-QA Seed Retrieval Front End
+Source inspiration: AgentGrounder (arXiv 2605.25901; ICRA 2026 MM-Spatial & SRRA Workshops; public code) plus GraFT.
+
+Role after GraFT: **baseline/front end, not main novelty**. Build a lightweight object lookup table from GT boxes and use question parsing + synonyms/frozen semantics to identify seed/referred objects. Do not claim generic object lookup or relevant-class extraction as contribution.
+
+Scores: Novelty 1.5 standalone / 2.5 as component; Expected Accuracy Gain 3.0; Feasibility 4.5; Compute Cost 4.5; Fit 4.5; Evidence Strength 4.5.
+
+### 3. RCSX: Relation-Conditioned Supporting-Object Expansion
+Source inspiration: Relationship-Aware Hierarchical 3D Scene Graph / ReasoningGraph (ICRA 2026) and View-on-Graph (AAAI 2026).
+
+Hypothesis: after seeds are grounded, question-conditioned traversal over cheap GT-box relations can retain unnamed supporting evidence better than KNN/radius expansion at the same object budget.
+
+This is now the strongest algorithmic submodule inside SAFER-QA. Scene-graph retrieval itself is not novel; the differentiator is QA-specific unnamed-support retention under an Abstract-3D rendering budget, followed by PoseAlign-T directional refinement.
+
+Scores: Novelty 3.0 standalone / 3.5 inside SAFER-QA; Expected Accuracy Gain 3.5; Feasibility 4.5; Compute Cost 4.5; Fit 5.0; Evidence Strength 4.5.
+
+### 4. Object-Diversity Context Preservation inspired by 3DZip
 Source: 3DZip, ECCV 2026, arXiv 2608.01185; public code.
 
-Hypothesis: Pure semantic/KNN selection can collapse onto redundant objects; geometry-constrained diversity selection may retain more useful supporting evidence under a fixed object budget.
+Use only as a support-budget tie-breaker: after hard seed retention and relation-aware candidate expansion, select a diverse subset of supports rather than redundant nearest neighbors. Do not make token compression the thesis core.
 
-Transfer: after hard seed retention, represent each GT object with lightweight semantic + geometry features and select support objects using DPP/FPS-style diversity under spatial constraints. Do not adopt the LLaVA-3D token pipeline as the thesis core.
+Scores: Novelty 3.0 integration; Expected Accuracy Gain 3.0; Feasibility 3.5; Compute Cost 4.0; Fit 4.0; Evidence Strength 4.0.
 
-Scores: Novelty 3.5; Expected Accuracy Gain 3.0; Feasibility 3.5; Compute Cost 4.0; Fit 4.0; Evidence Strength 4.0.
-Object-selection expectations: budget-controlled Object Reduction Ratio; Question Entity Coverage preserved via hard seed retention; Supporting-Context Retention potentially better than KNN; context-loss risk medium.
+### 5. Question-Aligned View Selection after Subscene Selection
+Sources: CoV (Findings ACL 2026), SpatialPrompting (Frontiers in Robotics and AI 2026), and GraFT (2026 preprint).
 
-### 3. ViewMind3D-Guided Modular QA Baseline / Transfer
-Source: ViewMind3D (arXiv 2607.28442, 2026-07-30; preprint; no verified official code as of this update).
+These establish strong precedent for question-conditioned/geometry-guided frame selection. Treat view selection as a secondary module/ablation: after SAFER-QA selects the subscene and PoseAlign-T establishes the reference frame, choose the smallest set of views that jointly exposes seeds and retained supports.
 
-Evidence: fully training-free; question-driven multi-view selection; language-conditioned grounding; BEV viewpoint indicator; structured reasoning; evaluated on ScanQA/SQA3D. Strongest setting uses OpenAI o3, so <=7B transfer requires separate validation.
-
-Use: near-task baseline for view selection/structured reasoning; compare raw multi-view evidence against PoseRecover/PoseAlign-T + selected Abstract-3D subscene.
-
-Scores: Novelty 2.0 standalone / 3.0 as transfer; Expected Accuracy Gain 4.0; Feasibility 3.0; Compute Cost 2.5; Fit 5.0; Evidence Strength 4.5.
-
-### 4. Question-Aligned View Selection after Subscene Selection
-Source: CoV, Findings of ACL 2026; training-free; evaluated on ScanQA/SQA3D.
-
-Hypothesis: after compact subscene selection, question-aligned view selection/open-view refinement can improve visibility without many redundant views.
-
-Use PoseAlign-T to initialize a canonical frame and apply view search only to the retained subscene. Treat as secondary module/ablation because generic question-conditioned view selection is already well covered.
-
-Scores: Novelty 2.5; Expected Accuracy Gain 4.0; Feasibility 3.5; Compute Cost 3.0; Fit 4.5; Evidence Strength 5.0.
-
-### 5. TDVR-inspired Structured Query + Distractor-aware Pose Refinement
-Source: TDVR (arXiv 2608.03763, 2026-08-04; preprint; no verified official code as of this update).
-
-Hypothesis: structured target/anchor/attribute/relation parsing can improve seed-instance resolution; post-PoseAlign distractor filtering can reduce same-class clutter.
-
-Supporting-context rule: never discard non-seed neighbors merely for low semantic similarity; this module only resolves seed ambiguity, while QA support expansion remains separate.
-
-Scores: Novelty 2.5; Expected Accuracy Gain 3.5; Feasibility 4.0; Compute Cost 4.0; Fit 4.5; Evidence Strength 3.5.
-Object-selection expectations: medium Object Reduction Ratio; improved Question Entity Coverage under same-class ambiguity; Supporting-Context Retention neutral unless combined with OLT-QA; context-loss risk medium if pruning is aggressive.
+Scores: Novelty 2.0; Expected Accuracy Gain 4.0; Feasibility 4.0; Compute Cost 3.5; Fit 4.5; Evidence Strength 5.0.
 
 ### 6. Post-selection Geometry-Aware Visual Token Pruning
-Source: Seeing Once is Enough? Online Geometry-Aware Token Pruning for 3D Question Answering (arXiv 2607.04079; First Workshop on Efficient Spatial Reasoning at ICLR 2026; no verified public code yet).
+Source: Seeing Once is Enough? Online Geometry-Aware Token Pruning for 3D Question Answering (arXiv 2607.04079; ICLR 2026 workshop).
 
-Evidence: training-free and directly tested with Qwen2.5-VL-7B/Qwen3-VL-8B on ScanQA/SQA3D/OpenEQA-HM3D. It projects posed RGB-D observations to a shared voxel space and prunes visual tokens corresponding to already-observed geometry. Reported up to ~50% token reduction. With Qwen2.5-VL-7B online uniform sampling, ScanQA EM 24.1 -> 25.1 and CIDEr 65.6 -> 69.3 while tokens fall 37.1M -> 32.6M; SQA3D EM 46.5 -> 47.3 while tokens fall 28.0M -> 24.1M.
+Role: efficiency ablation after selected-subscene multi-view rendering. Protect selected seed/support objects at object level; prune only redundant cross-view patches/tokens.
 
-Research Hypothesis: after OLT-QA + PoseAlign-T + abstract multi-view rendering, geometry-aware redundancy pruning can reduce cross-view tokens without deleting selected seed/support objects.
-
-Object-selection rule: unchanged; OLT-QA runs first.
-Supporting-context rule: protect all selected seed/support objects at object level; prune only redundant visual patches represented elsewhere in the retained views.
-Expected benefit: lower token/VRAM/latency and possibly less attention dilution.
-Difficulty: medium; requires depth/pose projection and access to the VLM visual-token path.
-Compute: no training; demonstrated directly with a 7B VLM. Exact VRAM not reported.
-Metrics: ScanQA/SQA3D QA metrics, visual-token count, latency, peak VRAM, plus upstream Object Reduction Ratio/Question Entity Coverage/Supporting-Context Retention.
-Ablations: selected subscene only; + view selection; + token pruning; + both; pruning threshold sweep; protected-object mask on/off.
-Risk: does not solve relevant-object selection; cannot be thesis novelty by itself.
 Scores: Novelty 2.0 standalone / 2.5 integration; Expected Accuracy Gain 3.0; Feasibility 4.0; Compute Cost 4.5; Fit 4.0; Evidence Strength 4.5.
 
-### 7. RCSX: Relation-Conditioned Supporting-Object Expansion
-Source inspiration: Relationship-Aware Hierarchical 3D Scene Graph / ReasoningGraph (IEEE ICRA 2026; project page with code/data).
+## New critical evidence: GraFT (2026-09-03)
+- Training-free framework over a compact 3D scene graph.
+- Object nodes store class labels and 3D box geometry; ground-truth ScanNet annotations are explicitly evaluated as a perception setting.
+- BEV module renders only query-relevant objects and omits the rest.
+- `RelevantClasses(q)` uses regex+synonyms or a VLM selector; egocentric target objects are resolved by class name.
+- ScanQA uses frozen Qwen2.5-VL-7B. Uniform 8-frame baseline CIDEr 58.0; selected top-1 69.2; top-2 73.6; top-3 75.9. Default top-2 also raises BLEU-1 22.2 -> 34.2.
+- Qwen2.5-VL-3B is also demonstrated on VSI-Bench, strengthening fit with the <=7B constraint.
+- Hardware/VRAM is not reported; no training is required.
+- No official code repository was verified as of 2026-09-06.
 
-Hypothesis: after explicit seed objects are grounded, question-conditioned traversal over a lightweight relation graph derived from GT boxes can retain unnamed supporting evidence better than KNN/radius expansion at the same object budget.
+**Novelty implication:** generic relevant-object extraction, selective BEV rendering of referenced objects, symbolic geometry over boxes, and geometry-guided view retrieval must be treated as prior work/baselines. The remaining promising gap is **support-aware selection of unnamed evidence for open-ended 3D QA under a strict object budget**.
 
-Transfer rule:
-1. Reuse OLT-QA seed retrieval and hard-retain plausible seed instances.
-2. Construct cheap pairwise GT-box relations: proximity, vertical relation, overlap/containment, co-location, and approximate support/contact where geometry permits.
-3. Parse relation intent from the question and expand only compatible 1-hop supporting objects; permit a second hop only when the first relation is high confidence.
-4. Score supports using relation compatibility + geometric confidence + optional frozen semantic/visual similarity.
-5. After PoseAlign-T, recompute left/right/front/behind and prune directional inconsistencies.
-6. Render the budgeted seed+support subset only.
-
-Supporting-context rule: unnamed objects can enter through relation-compatible expansion even when semantic similarity to the question is low. Same-class distractors remain until instance disambiguation is complete.
-
-Evidence/transfer caveat: ReasoningGraph's full Hydra/ROS mapping and detector stack is outside scope and can be discarded because ScanNet GT boxes are fixed input. Scene-graph task retrieval itself is not novel; the thesis-specific test is QA evidence retention under an Abstract-3D object budget.
-
-Scores: Novelty 3.0; Expected Accuracy Gain 3.5; Feasibility 4.5; Compute Cost 4.5; Fit 5.0; Evidence Strength 4.5.
-Object-selection targets to test: Object Reduction Ratio 50-85%; Question Entity Coverage >=95%; Supporting-Context Retention expected higher than KNN at matched object budget but unverified; context-loss risk medium.
-Primary ablation: Full scene vs Seed-only vs Seed+KNN vs Seed+radius vs Seed+RCSX, all with matched object budgets, followed by +PoseAlign-T directional refinement.
-Publication potential: moderate only if matched-budget experiments show consistent QA preservation/gains and failure analysis isolates unnamed-support improvements; weak if the method reduces to generic scene-graph retrieval.
-
-## Evidence notes
-
-### GuideGround (arXiv 2608.00518)
-Preserves per-view grounding hypotheses and verifies them separately before aggregation. Transfer only as a multi-view verification ablation after compact subscene selection; not thesis novelty.
-
-### View-on-Graph, AAAI 2026
-Zero-shot 3D grounding through selective reasoning over a multi-modal scene graph. This weakens novelty claims based only on `scene graph + VLM + selective access`; use as baseline/ablation, not core contribution.
-
-### SpatialPrompting, Frontiers in Robotics and AI 2026
-Peer-reviewed, training-free pose-aware keyframe selection; evaluates ScanQA/SQA3D and includes Qwen2.5-VL-7B experiments. Strong baseline for view selection but not novelty.
-
-### UniGround, arXiv 2603.08131
-Training-free global candidate filtering + local precision grounding. Strong evidence for semantic candidate filtering, but it solves referred-target grounding rather than unnamed QA supporting-context retention.
-
-### SmartMage, arXiv 2608.05137
-Query-adaptive modality routing for 3D scene understanding. Relevant evidence that query-dependent evidence selection matters, but it is a trained unified MLLM rather than a training-free object/subscene selector; not a direct candidate.
-
-### CoordRefer (arXiv 2608.05569)
-Uses Qwen3-VL-2B and explicitly decouples coordinate-frame selection from coordinate-conditioned 3D box grounding, but requires coordinate-aware SFT plus GRPO. Keep as evidence for ordering reference-frame selection before coordinate-dependent decisions; not a main candidate under the training-free constraint.
+## Evidence notes retained
+- ViewMind3D (arXiv 2607.28442): training-free, question-driven multi-view selection + grounding + BEV + structured reasoning on ScanQA/SQA3D; strongest setup uses o3. Near-task baseline, not novelty.
+- TDVR (arXiv 2608.03763): structured target/anchor/relation parsing and viewpoint-aware distractor resolution; useful seed disambiguation precedent.
+- UniGround (arXiv 2603.08131): training-free semantic candidate filtering + precision grounding; referred-target grounding, not unnamed support retention.
+- CoordRefer (arXiv 2608.05569): evidence for resolving coordinate/reference frame before coordinate-dependent decisions, but requires SFT+GRPO.
+- SmartMage (arXiv 2608.05137): query-adaptive evidence routing but trained; evidence only.
 
 ## Current top candidate
-**OLT-QA remains #1, with RCSX as its strongest supporting-context variant.**
+**SAFER-QA: Support-Aware Evidence Expansion for Selective Abstract 3D Rendering.**
 
-Reason: the unresolved QA-specific problem remains identifying explicit seed/referred objects while preserving unnamed supporting/context objects, then reducing the Abstract-3D subscene aggressively without sacrificing answerability. ReasoningGraph strengthens the evidence that relation-aware task retrieval can outperform purely semantic/noun-based access conceptually, but its heavy mapping stack is unnecessary with fixed GT boxes. The decisive next experiment should therefore compare KNN/radius support expansion against RCSX at matched object budgets, followed by PoseAlign-T directional refinement and downstream QA preservation.
+Reason: GraFT newly provides a near-direct, training-free baseline for selective rendering of *referenced* objects with ScanNet-compatible 3D boxes and Qwen2.5-VL-7B. That sharply reduces the novelty of OLT-style seed retrieval but strengthens the thesis case for the unresolved part: preserving **unnamed supporting/context objects** while aggressively reducing the rendered Abstract-3D subscene. The decisive experiment is now a matched-budget comparison of GraFT-style seed-only, KNN/radius expansion, relation-aware expansion, and relation+diversity expansion, followed by PoseAlign-T refinement and downstream QA preservation.
