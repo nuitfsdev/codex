@@ -1,0 +1,17 @@
+{
+  "experiment_id": "weekly_exp_004_adaptive_relation_chain",
+  "winning_candidate": "Adaptive Relation-Chain Subscene Selection",
+  "hypothesis": "A training-free selector that expands from seed objects along question-implied relation hops can remove at least 50% of scene objects while retaining answer-critical bridge/support objects much better than seed-only or KNN pruning.",
+  "A": "All Objects / Full Scene",
+  "B": "Mentioned Seed Objects Only",
+  "C": "Seed + 4 Nearest Objects",
+  "D": "Adaptive relation-chain expansion, beam=3",
+  "E": "Oracle Required Objects",
+  "seed": 42,
+  "synthetic_scenes": 20000,
+  "objects_per_scene": 24,
+  "two_hop_probability": 0.45,
+  "acceptance_sanity": ">=50% reduction, >=99.9% seed coverage, >=90% support recall, >=30 pp full-retention gain vs KNN",
+  "acceptance_real": ">=50% reduction and real QA drop <=1 pp vs full scene, or real QA improves with meaningful reduction",
+  "target_real_benchmarks": ["ScanQA validation", "SQA3D spatial/directional subset"]
+}
