@@ -1,6 +1,6 @@
 # Thesis Research Shortlist
 
-> **CURRENT STATE (2026-10-25):** This file is a historical snapshot last fully revised 2026-09-24. The maintained cumulative weekly source of truth is [research/weekly/2026-W43.md](weekly/2026-W43.md), with full daily evidence in [research/daily/2026-10-25.md](daily/2026-10-25.md). Do not interpret older scores below as current; no GPU benchmark has validated the current selector improvements.
+> **CURRENT STATE (2026-10-26):** This file contains a historical snapshot last fully revised 2026-09-24. The maintained cumulative source of truth for this week is [research/weekly/2026-W44.md](weekly/2026-W44.md), with full new evidence in [research/daily/2026-10-26.md](daily/2026-10-26.md). Previous [W43](weekly/2026-W43.md) is archived. Do not interpret old scores below as current; no GPU benchmark has validated the new selector candidates.
 
 Project: 3D Scene Understanding with 2D Vision-Language Models via Abstract 3D Representations and Viewpoint Alignment
 
