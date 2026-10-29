@@ -1,6 +1,6 @@
 # Thesis Research Shortlist
 
-> **CURRENT STATE (2026-10-28):** This file contains a historical snapshot last fully revised 2026-09-24. Canonical cumulative shortlist is [research/weekly/2026-W44.md](weekly/2026-W44.md); latest evidence is [28 Oct](daily/2026-10-28.md) (RelateGS, GeoLift, SATE-Bench, ImagiRep/GEARS; untested ROWB and TASE refinements), after [27 Oct](daily/2026-10-27.md). Old September scores below are not current; no GPU benchmark has validated the new candidates.
+> **CURRENT STATE (2026-10-29):** Historical September snapshot. Canonical cumulative shortlist is [research/weekly/2026-W44.md](weekly/2026-W44.md); newest [29 Oct daily](daily/2026-10-29.md) adds **3D-SceneQ (IEEE TMM 2026)** direct prior art for question-guided object pruning on ScanQA/SQA3D and the EgoAlign pose-dependence audit. SAFER-QA remains #1 but generic pruning novelty is narrowed. No GPU benchmark or validated gain.
 
 Project: 3D Scene Understanding with 2D Vision-Language Models via Abstract 3D Representations and Viewpoint Alignment
 
