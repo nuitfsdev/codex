@@ -1,5 +1,7 @@
 # Thesis Research Shortlist
 
+> **CURRENT STATE (2026-10-31):** Historical September snapshot. Canonical cumulative shortlist is [research/weekly/2026-W44.md](weekly/2026-W44.md); newest [31 Oct daily](daily/2026-10-31.md) verifies OneScene-Bench (2610.38926), MIMO-Bench (2610.38957), PhysCount (2610.40530), and CrossWeave (2610.40525). SAFER-QA remains #1; new secondary ICSMF ID-consistent multi-view fusion and APWR same-class ambiguity reserve do not displace the main pre-render unnamed-witness hypothesis. Latest novelty priority score SAFER-QA 2.6/5 (subjective), no GPU benchmark or validated QA gain.
+
 > **CURRENT STATE (2026-10-30):** Historical September snapshot. Canonical cumulative shortlist is [research/weekly/2026-W44.md](weekly/2026-W44.md); newest [30 Oct daily](daily/2026-10-30.md) audits direct semantic-vs-geometry retrieval (arXiv 2610.14207), ClusterSplat (2610.36462), and P3-VLM box/label shortcut risk (2610.28018). SAFER-QA remains #1; generic semantic ranking and relation retrieval are prior art. No GPU benchmark or measured QA gain.
 
 Project: 3D Scene Understanding with 2D Vision-Language Models via Abstract 3D Representations and Viewpoint Alignment
