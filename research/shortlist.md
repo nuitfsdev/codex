@@ -1,4 +1,6 @@
 # Thesis Research Shortlist
+> **CURRENT STATE (2026-11-01; W44 closeout):** Canonical W44 [weekly shortlist](weekly/2026-W44.md); newest [1 Nov daily](daily/2026-11-01.md) audits ClueTracer (EMNLP 2026 MAIN, 3DSRBench gains on authors' models, not ScanQA) and BEHAVIOR-Spatial. New secondary SRC-SA/CTFBA are evaluation only. SAFER-QA remains #1 N2.6/5, no measured ScanQA gain, no GPU run; independent SCR GT missing. W45 starts 2 Nov.
+
 
 > **CURRENT STATE (2026-10-31):** Historical September snapshot. Canonical cumulative shortlist is [research/weekly/2026-W44.md](weekly/2026-W44.md); newest [31 Oct daily](daily/2026-10-31.md) verifies OneScene-Bench (2610.38926), MIMO-Bench (2610.38957), PhysCount (2610.40530), and CrossWeave (2610.40525). SAFER-QA remains #1; new secondary ICSMF ID-consistent multi-view fusion and APWR same-class ambiguity reserve do not displace the main pre-render unnamed-witness hypothesis. Latest novelty priority score SAFER-QA 2.6/5 (subjective), no GPU benchmark or validated QA gain.
 
