@@ -1,3 +1,5 @@
+> **CURRENT STATE (2026-11-02; W45 opened):** Canonical [W45 weekly shortlist](weekly/2026-W45.md); newest [2 Nov daily](daily/2026-11-02.md) audits previously missed direct prior **ViewMind3D** (training-free 2D-VLM multi-view 3D-QA, GPT-4.1/o3, ScanQA/SQA3D), **Scene-Q** (IROS 2026, released code, confidence-gated Qwen2.5-VL instance retrieval), and **Seeing Once** (training-free geometry-aware visual-token pruning). No confirmed new 2 Nov arXiv batch at scan time. SAFER-QA remains #1, subjective novelty adjusted **2.4/5**; no validated QA gain, no daily GPU run. New secondary QRCWG and IAVOB do not displace core. Independent supporting-object GT still missing.
+
 # Thesis Research Shortlist
 > **CURRENT STATE (2026-11-01; W44 closeout):** Canonical W44 [weekly shortlist](weekly/2026-W44.md); newest [1 Nov daily](daily/2026-11-01.md) audits ClueTracer (EMNLP 2026 MAIN, 3DSRBench gains on authors' models, not ScanQA) and BEHAVIOR-Spatial. New secondary SRC-SA/CTFBA are evaluation only. SAFER-QA remains #1 N2.6/5, no measured ScanQA gain, no GPU run; independent SCR GT missing. W45 starts 2 Nov.
 
