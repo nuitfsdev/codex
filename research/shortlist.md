@@ -115,3 +115,5 @@ Best current instantiation:
 `seed retrieval -> relation-conditioned scene-wide support candidates -> QA-utility allocation + small context reserve -> optional hierarchy/context prior -> optional uncertainty expansion -> PoseAlign-T directional refinement -> selective Abstract3D render -> <=7B VLM`.
 
 Reason: SceneBench strengthens the case that compositional 3D QA often needs evidence beyond explicit question nouns and flat object-level relevance, but it does not solve question-conditioned pre-render object selection for ScanQA/SQA3D. The remaining defensible test is whether QA-conditioned support selection achieves a better QA-vs-object-budget frontier than grounding-oriented pruning and question-independent coverage.
+
+> **CURRENT UPDATE (2026-11-13):** [W46 current](weekly/2026-W46.md), [13 Nov daily](daily/2026-11-13.md). SAFER-QA remains #1, provisional novelty 2.0/5; PhysMoE and maritime scene-memory are not direct selector replacements. CWIA evaluation only. No GPU run or validated QA gain.
